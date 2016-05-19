@@ -161,7 +161,6 @@ fetchAllOrgRepos(config.githubOrg)
   return sortedRepos.withFrameworks;
 })
 .then((reposWithFrameworks) => {
-  console.log('reposWithFrameworks', reposWithFrameworks);
   let sortedByFramework = {};
   config.valuedDeps.forEach((d) => sortedByFramework[d] = []);
 
@@ -170,11 +169,16 @@ fetchAllOrgRepos(config.githubOrg)
       sortedByFramework[d].push(r.name);
     });
   });
-  console.log('sortedByFramework', sortedByFramework);
   console.log('\nThe usage of each framework across the org')
 
   for (f in sortedByFramework) {
-    console.log(`\t${f} is used in ${sortedByFramework[f].length} projects`);
+    let projects = sortedByFramework[f];
+    console.log(`\t${f} is used in ${projects.length} projects`);
+    if (projects.length > 0) {
+      projects.forEach((p) => {
+        console.log(`\t\t*${p}`);
+      });
+    }
   }
 })
 .catch((err) => {

@@ -1,0 +1,22 @@
+{
+  "name": "github-org-wide-repo-crawler",
+  "version": "1.0.0",
+  "description": "Crawl github org and analyze JS framework usage",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "help": "sharkdown README.md",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Jeremia Kimelman <jeremia.kimelman@gsa.gov>",
+  "license": "ISC",
+  "engines": {
+    "node": "~6.2.0",
+    "npm": "~3.8.0"
+  },
+  "dependencies": {
+    "request": "^2.72.0",
+    "sharkdown": "^0.1.0",
+    "underscore": "^1.8.3"
+  }
+}

@@ -3,6 +3,9 @@ const _ = require('underscore');
 const request = require('request');
 
 const config = require('./config');
+if (!config.token) {
+ return console.log('A valid Github token is required. Please use npm run help for instructions.');
+}
 
 const req = request.defaults({
   headers: {

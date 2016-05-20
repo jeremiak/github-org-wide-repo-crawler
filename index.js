@@ -71,7 +71,7 @@ function fetchAllOrgRepos(org) {
       let repos = [].concat(val.json);
       let pagination = getPaginateHeaderData(val.headers.link);
 
-      let promises = _.range(2, 4/*pagination.last + 1*/).map((p) => {
+      let promises = _.range(2, pagination.last + 1).map((p) => {
         return fetchOrgReposByPage(org, p);
       });
 

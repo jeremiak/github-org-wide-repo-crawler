@@ -85,17 +85,21 @@ function fetchAllOrgRepos(org) {
     })
 }
 
-function fetchPackageJsonFromRepo(repoOwnerName, repoName) {
-  console.log(`\tFetching package.json for ${repoOwnerName}/${repoName}`);
-  const path = ['repos', repoOwnerName, repoName, 'contents/package.json'].join('/')
+function fetchJsonFileFromRepo(repoOwnerName, repoName, filePath) {
+  console.log(`\tFetching ${filePath} for ${repoOwnerName}/${repoName}`);
+  const path = ['repos', repoOwnerName, repoName, `contents/${filePath}`].join('/')
   return fetch({ uri: url(path) });
 }
-
 
 function hasValuedDeps(deps) {
   let intersection = _.intersection(config.valuedDeps, deps);
   if (intersection.length === 0) return false;
   return intersection;
+}
+
+function jsonifyBase64(bstring) {
+  let buf = new Buffer(bstring, 'base64');
+  return JSON.parse(buf.toString());
 }
 
 fetchAllOrgRepos(config.githubOrg)
@@ -110,32 +114,45 @@ fetchAllOrgRepos(config.githubOrg)
   });
 })
 .then((repos) => {
-  let packages = repos.map((r) => {
-    return fetchPackageJsonFromRepo(config.githubOrg, r.name)
+  let packages = _.flatten(config.depFiles.map((file) => {
+    return repos.map((r) => {
+      return fetchJsonFileFromRepo(config.githubOrg, r.name, file)
       .then((res) => {
+        let p = {};
         if (res.statusCode === 404) {
-          console.log(`\tDid not find a package.json in ${r.name}`);
+          console.log(`\tDid not find ${file} in ${r.name}`);
           return;
         }
-
-        console.log(`\tFound a package.json in ${r.name}`)
-        let packageContent = new Buffer(res.json.content, 'base64');
-        let packageJson = JSON.parse(packageContent.toString());
-
-        return Object.assign({}, r, { package: packageJson });
+        p[file.split('.')[0]] = jsonifyBase64(res.json.content);
+        console.log(`\tFound ${file} in ${r.name}`);
+        return Object.assign(r, p);
       });
-  });
+    });
+  }));
 
   return Promise.all(packages).then((package) => {
     return package.filter((p) => !_.isUndefined(p));
   });
 })
-.then((reposWithPackageJsons) => {
-  console.log(`\nFound ${reposWithPackageJsons.length} repos with files named package.json`);
-  return reposWithPackageJsons.map((repo) => {
-    let deps = repo.package.dependencies || {};
-    let devDeps = repo.package.devDependencies || {};
-    let allDeps = Object.assign({}, deps, devDeps);
+.then((reposWithDuplicates) => {
+  let ids = [];
+  let repos = reposWithDuplicates.filter((r) => {
+    if (_.contains(ids, r.id)) return false;
+    ids.push(r.id);
+    return true;
+  });
+
+  return repos;
+})
+.then((repos) => {
+  console.log(`\nFound ${repos.length} repos with listed Javascript dependencies`);
+  return repos.map((repo) => {
+
+    let packageDeps = (repo.package) ? repo.package.dependencies : {};
+    let packageDevDeps = (repo.package) ? repo.package.devDependencies : {};
+    let bowerDeps = (repo.bower) ? repo.bower.dependencies : {};
+    let bowerDevDeps = (repo.bower) ? repo.bower.devDependencies : {};
+    let allDeps = Object.assign({}, packageDeps, packageDevDeps, bowerDeps, bowerDevDeps);
     let has = hasValuedDeps(Object.keys(allDeps));
 
     return Object.assign({}, repo, { valuedDeps: has });
